@@ -26,7 +26,7 @@ object eithers {
    * Using both a type alias, and Scala's `Either` type, construct a type called `IntOrString` that
    * can either hold an `Int` or a `String`.
    */
-  type IntOrString = TODO
+  type IntOrString = Either[Int, String]
 
   /**
    * EXERCISE 2
@@ -34,7 +34,7 @@ object eithers {
    * Construct a value of type `IntOrString` that contains the string "Sherlock", using the
    * `Right(_)` constructor for `Either`.
    */
-  lazy val intOrString: IntOrString = TODO
+  lazy val intOrString: IntOrString = Right("Sherlock")
 
   /**
    * EXERCISE 3
@@ -42,7 +42,7 @@ object eithers {
    * Using both a type alias, and Scala's `Either` type, construct a type called
    * `PaymentMethod` that can be either `CreditCard` or `WireTransfer`.
    */
-  type PaymentMethod = TODO
+  type PaymentMethod = Either[CreditCard, WireTransfer]
 
   final case class CreditCard()
   final case class WireTransfer()
@@ -53,7 +53,7 @@ object eithers {
    * Construct a value of type `PaymentMethod` that contains a value of type `CreditCard`, using the
    * `Left(_)` constructor for `Either`.
    */
-  lazy val paymentMethod: PaymentMethod = TODO
+  lazy val paymentMethod: PaymentMethod = Left(CreditCard())
 }
 
 /**
@@ -68,7 +68,7 @@ object eithers {
  * thought of as defining "tables" that have zero or more "columns".
  *
  * Case classes are immutable: once constructed, they cannot change. However, there are simple ways
- * to created a new value from an existing value, in which some field has been "changed".
+ * to create a new value from an existing value, in which some field has been "changed".
  *
  * Case classes are examples of "labeled products": they are types formed using "product
  * composition"  of other types, where each term of the product can be accessed by a user-defined
@@ -84,7 +84,12 @@ object enum_basics {
    */
   sealed trait ChessPieceType
   object ChessPieceType {
-    case object Pawn extends ChessPieceType
+    case object Pawn   extends ChessPieceType
+    case object Knight extends ChessPieceType
+    case object Bishop extends ChessPieceType
+    case object Rook   extends ChessPieceType
+    case object King   extends ChessPieceType
+    case object Queen  extends ChessPieceType
   }
 
   /**
@@ -93,7 +98,7 @@ object enum_basics {
    * Using the enum that you created, construct a value of type `ChessPieceType` that holds a
    * `Pawn`.
    */
-  lazy val chessPieceType: ChessPieceType = TODO
+  lazy val chessPieceType: ChessPieceType = ChessPieceType.Pawn
 
   /**
    * EXERCISE 3
@@ -103,7 +108,8 @@ object enum_basics {
    */
   sealed trait Currency
   object Currency {
-    final case class USD(dollars: Int, cents: Int) extends Currency
+    final case class USD(dollars: Int, cents: Int)  extends Currency
+    final case class PHP(pesos: Int, centavos: Int) extends Currency
   }
 
   /**
@@ -112,7 +118,7 @@ object enum_basics {
    * Using the enum that you created, construct a value of type `Currency` that holds 9 dollars and
    * 9 cents of USD.
    */
-  lazy val currency: Currency = TODO
+  lazy val currency: Currency = Currency.USD(9, 9)
 }
 
 /**
@@ -143,7 +149,10 @@ object enum_utilities {
    * points of the card. Otherwise, ignore it. Note: You can match all values using the wildcard
    * (`_`), e.g. `case _ => `.
    */
-  card todo
+  card match {
+    case Card.Spades(points) => println(points)
+    case _                   => ()
+  }
 
   /**
    * EXERCISE 2
@@ -152,7 +161,10 @@ object enum_utilities {
    * match on `card` with a case that looks for `Spades(10)` (a spades card with 10 points), and
    * then have a catch all case. Print out different messages in each case.
    */
-  card todo
+  card match {
+    case Card.Spades(10) => println("10 of Spades")
+    case card            => println(card)
+  }
 
   /**
    * EXERCISE 3
@@ -161,7 +173,10 @@ object enum_utilities {
    * match on `card` again, and have two cases: one that looks for `Spades` with points `>= 10`,
    * and a catch-all. Print out distinct messages in each case.
    */
-  card todo
+  card match {
+    case Card.Spades(points) if points >= 10 => println("Royal Spade")
+    case card                                => println(card)
+  }
 
   /**
    * EXERCISE 4
@@ -173,7 +188,10 @@ object enum_utilities {
    *
    * In this exercise, match for `Spades`, give it a name `spades`, and print it out.
    */
-  card todo
+  card match {
+    case spades @ Card.Spades(_) => println(spades)
+    case _                       => ()
+  }
 
   /**
    * EXERCISE 5
@@ -184,7 +202,10 @@ object enum_utilities {
    *
    * In this exercise, match for either Spades or Diamonds, and print out a message.
    */
-  card todo
+  card match {
+    case Card.Spades(_) | Card.Diamonds(_) => println("Got Spades or Diamonds")
+    case _                                 => ()
+  }
 }
 
 /**
@@ -201,12 +222,12 @@ object enum_generics {
    * called `Data`, and using `Data` for the type of the field `Data` that is stored in some of the
    * cases of the enum.
    */
-  sealed trait AdvertisingEvent
+  sealed trait AdvertisingEvent[Data]
   object AdvertisingEvent {
-    case object None                                                           extends AdvertisingEvent
-    final case class Impression(pageUrl: String, data: String)                 extends AdvertisingEvent
-    final case class Click(pageUrl: String, elementId: String, data: String)   extends AdvertisingEvent
-    final case class Action(pageUrl: String, actionName: String, data: String) extends AdvertisingEvent
+    case object None                                                               extends AdvertisingEvent[Nothing]
+    final case class Impression[Data](pageUrl: String, data: Data)                 extends AdvertisingEvent[Data]
+    final case class Click[Data](pageUrl: String, elementId: String, data: Data)   extends AdvertisingEvent[Data]
+    final case class Action[Data](pageUrl: String, actionName: String, data: Data) extends AdvertisingEvent[Data]
   }
 
   /**
@@ -215,14 +236,14 @@ object enum_generics {
    * Create a type alias called `AdvertisingEventString`, which plugs the type `String` into the
    * enum `AdvertisingEvent`, to create an advertising event where the data type is `String`.
    */
-  type AdvertisingEventString = TODO
+  type AdvertisingEventString = AdvertisingEvent[String]
 
   /**
    * EXERCISE 3
    *
    * Construct an `AdvertisingEvent` that stores data of type `Int`, namely, the integer `42`.
    */
-  lazy val advertisingEvent = TODO
+  lazy val advertisingEvent = AdvertisingEvent.Impression("foo.bar", 42)
 
   /**
    * EXERCISE 4
@@ -231,10 +252,10 @@ object enum_generics {
    * `Element`, and using `Element` for the type of the field `value` that is stored in some of the
    * cases of the enum.
    */
-  sealed trait ConcatList
+  sealed trait ConcatList[Element]
   object ConcatList {
-    case object Empty                                            extends ConcatList
-    final case class Concat(left: ConcatList, right: ConcatList) extends ConcatList
-    final case class One(value: Int)                             extends ConcatList
+    case object Empty                                                                       extends ConcatList[Nothing]
+    final case class Concat[Element](left: ConcatList[Element], right: ConcatList[Element]) extends ConcatList[Element]
+    final case class One[Element](value: Element)                                           extends ConcatList[Element]
   }
 }

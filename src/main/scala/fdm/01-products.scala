@@ -216,7 +216,7 @@ object product_patterns {
    */
   dilbert match {
     case Employee("Dilbert", _) => println(dilbert.name)
-    case Employee(name, _) => println(name)
+    case Employee(name, _)      => println(name)
   }
 
   /**
@@ -231,7 +231,7 @@ object product_patterns {
    */
   dilbert match {
     case Employee(_, Address(street, _)) if street.startsWith("B") => println(street)
-    case Employee(_, Address(street, _)) => println(street)
+    case Employee(_, Address(street, _))                           => println(street)
   }
 
   /**
@@ -260,7 +260,7 @@ object product_patterns {
    */
   dilbert match {
     case Employee("Dilbert" | "dilbert", a @ Address(_, _)) => println(a)
-    case _ => ()
+    case _                                                  => ()
   }
 }
 
