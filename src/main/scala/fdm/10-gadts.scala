@@ -20,7 +20,9 @@ object gadts {
    */
   sealed trait ConversionType[A]
   object ConversionType {
-    case object ToInt extends ConversionType[Int]
+    case object ToInt    extends ConversionType[Option[Int]]
+    case object ToString extends ConversionType[String]
+    case object ToUnit   extends ConversionType[Unit]
   }
 
   /**
@@ -33,7 +35,11 @@ object gadts {
    * the `convert` function.
    */
   def convert[A](string: String, conversionType: ConversionType[A]): A =
-    ???
+    conversionType match {
+      case ConversionType.ToInt    => string.toIntOption
+      case ConversionType.ToString => string
+      case ConversionType.ToUnit   => ()
+    }
 
   /**
    * EXERCISE 3
@@ -45,9 +51,9 @@ object gadts {
    */
   final case class Path[Type] private (value: String)
   object Path {
-    def file(path: String) = new Path(path)
-
-    def directory(path: String) = new Path(path)
+    def file(path: String)      = new Path[String](path)
+    def directory(path: String) = new Path[List[Path[_]]](path)
+    def unknown(path: String)   = new Path[Either[String, List[String]]](path)
   }
   def get[Type](path: Path[Type]): Type = ???
 
@@ -68,7 +74,7 @@ object gadts_classic {
      * Then add a new case to the pattern match in `calculate` that correctly handles this
      * constructor.
      */
-    final case class Double()
+    final case class Double(d: scala.Double) extends CalculatedValue[scala.Double]
 
     /**
      * EXERCISE 2
@@ -77,7 +83,8 @@ object gadts_classic {
      * calculated values. Then add a new case to the pattern match in `calculate` that correctly
      * handles this new constructor.
      */
-    final case class SumDouble()
+    final case class SumDouble(a: CalculatedValue[scala.Double], b: CalculatedValue[scala.Double])
+        extends CalculatedValue[scala.Double]
 
     /**
      * EXERCISE 3
@@ -86,11 +93,15 @@ object gadts_classic {
      * calculated values. Then add a new case to the pattern match in `calculate` that correctly
      * handles this new constructor.
      */
-    final case class MultDouble()
+    final case class MultDouble(a: CalculatedValue[scala.Double], b: CalculatedValue[scala.Double])
+        extends CalculatedValue[scala.Double]
   }
 
   def calculate[A](spreadsheet: Spreadsheet, calculatedValue: CalculatedValue[A]): A =
     calculatedValue match {
-      case CalculatedValue.Integer(value) => value
+      case CalculatedValue.Integer(value)   => value
+      case CalculatedValue.Double(value)    => value
+      case CalculatedValue.SumDouble(a, b)  => calculate(spreadsheet, a) + calculate(spreadsheet, b)
+      case CalculatedValue.MultDouble(a, b) => calculate(spreadsheet, a) * calculate(spreadsheet, b)
     }
 }
