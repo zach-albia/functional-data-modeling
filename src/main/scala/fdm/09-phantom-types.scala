@@ -11,11 +11,11 @@ object phantom_types {
    */
   type Created
   type Connected
-  trait Socket
+  trait Socket[S]
 
-  def createSocket(): Socket                                 = ???
-  def connectSocket(address: String, socket: Socket): Socket = ???
-  def readSocket(socket: Socket): Array[Byte]                = ???
+  def createSocket(): Socket[Created]                                            = ???
+  def connectSocket(address: String, socket: Socket[Created]): Socket[Connected] = ???
+  def readSocket(socket: Socket[Connected]): Array[Byte]                         = ???
 
   /**
    * EXERCISE 2
@@ -30,14 +30,14 @@ object phantom_types {
    */
   type File
   type Directory
-  sealed trait Path
+  sealed trait Path[S]
   object Path {
-    case object Root                                   extends Path
-    final case class ChildOf(path: Path, name: String) extends Path
+    case object Root                                                       extends Path[Directory]
+    final case class ChildOf private (path: Path[Directory], name: String) extends Path[Either[File, Directory]]
   }
 
-  def readFile(path: Path): String          = ???
-  def listDirectory(path: Path): List[Path] = ???
+  def readFile(path: Path[File]): String                                   = ???
+  def listDirectory(path: Path[File]): List[Path[Either[File, Directory]]] = ???
 
   /**
    * EXERCISE 3
@@ -54,13 +54,13 @@ object phantom_types {
    */
   type SetAge
   type SetName
-  case class PersonBuilder(age: Option[Int], name: Option[String]) {
-    def age(v: Int): PersonBuilder = copy(age = Some(v))
+  case class PersonBuilder[S] private (age: Option[Int], name: Option[String]) {
+    def age(v: Int): PersonBuilder[SetAge] = copy(age = Some(v))
 
-    def name(s: String): PersonBuilder = copy(name = Some(s))
+    def name(s: String): PersonBuilder[SetName] = copy(name = Some(s))
   }
-  final case class Person(name: String, age: Int)
+  final case class Person private (name: String, age: Int)
 
-  def build(personBuilder: PersonBuilder): Person =
+  def build(personBuilder: PersonBuilder[SetAge with SetName]): Person =
     Person(personBuilder.name.get, personBuilder.age.get)
 }
