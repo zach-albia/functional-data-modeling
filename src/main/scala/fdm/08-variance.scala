@@ -22,7 +22,7 @@ object subtyping {
    * Determine the relationship between `Animal` and `Dog`, and encode that using either
    * `IsSubtypeOf` or `IsSupertypeOf`.
    */
-  type Exercise1 = TODO
+  type Exercise1 = Animal IsSupertypeOf Dog
 
   /**
    * EXERCISE 2
@@ -30,7 +30,7 @@ object subtyping {
    * Determine the relationship between `Dog` and `Animal` (in that order), and encode that using
    * either `IsSubtypeOf` or `IsSupertypeOf`.
    */
-  type Exercise2 = TODO
+  type Exercise2 = Dog IsSubtypeOf Animal
 
   /**
    * EXERCISE 3
@@ -38,7 +38,7 @@ object subtyping {
    * Determine the relationship between `Animal` and `Cat`, and encode that using either
    * `IsSubtypeOf` or `IsSupertypeOf`.
    */
-  type Exercise3 = TODO
+  type Exercise3 = Animal IsSupertypeOf Cat
 
   /**
    * EXERCISE 4
@@ -46,7 +46,7 @@ object subtyping {
    * Determine the relationship between `Cat` and `Animal` (in that order), and encode that using
    * either `IsSubtypeOf` or `IsSupertypeOf`.
    */
-  type Exercise4 = TODO
+  type Exercise4 = Cat IsSubtypeOf Animal
 
   /**
    * EXERCISE 5
@@ -58,12 +58,12 @@ object subtyping {
    * In this exercise, use the right type operator such that the examples that should compile do
    * compile, but the examples that should not compile do not compile.
    */
-  def isInstanceOf[A, B](a: A): Unit = ???
+  def isInstanceOf[A, B >: A](a: A): Unit = ???
 
-  lazy val mustCompile1    = isInstanceOf[Ripley.type, Dog](Ripley)
-  lazy val mustCompile2    = isInstanceOf[Midnight.type, Cat](Midnight)
-  lazy val mustNotCompile1 = isInstanceOf[Ripley.type, Cat](Ripley)
-  lazy val mustNotCompile2 = isInstanceOf[Midnight.type, Dog](Midnight)
+  lazy val mustCompile1 = isInstanceOf[Ripley.type, Dog](Ripley)
+  lazy val mustCompile2 = isInstanceOf[Midnight.type, Cat](Midnight)
+  // lazy val mustNotCompile1 = isInstanceOf[Ripley.type, Cat](Ripley)
+  // lazy val mustNotCompile2 = isInstanceOf[Midnight.type, Dog](Midnight)
 
   /**
    * EXERCISE 6
@@ -71,7 +71,7 @@ object subtyping {
    * The following data type imposes no restriction on the guests who stay at the hotel. Using
    * the subtyping or supertyping operators, ensure that only animals may stay at the hotel.
    */
-  final case class PetHotel[A](rooms: List[A])
+  final case class PetHotel[A <: Animal](rooms: List[A])
 }
 
 /**
@@ -105,7 +105,11 @@ object invariance {
    *
    * Take note of your findings.
    */
-  def bookMidnightAndRipley(animalHotel: PetHotel[Animal]): Unit = ???
+  def bookMidnightAndRipley(animalHotel: PetHotel[Animal]): Unit = {
+    // bookRipley(animalHotel)
+    // bookMidnight(animalHotel)
+    // above won't compile because PetHotel is invariant in A, suggesting -A (contravariant)
+  }
 
   trait PetDeliveryService[A <: Animal] {
     def acceptDelivery: A
@@ -127,7 +131,11 @@ object invariance {
    *
    * Take note of your findings.
    */
-  def acceptRipleyDogAnimal(delivery: PetDeliveryService[Ripley.type]): Unit = ???
+  def acceptRipleyDogAnimal(delivery: PetDeliveryService[Ripley.type]): Unit =
+    acceptRipley(delivery)
+  // acceptDog(delivery)
+  // acceptAnimal(delivery)
+  // the last two don't compile because PetDeliveryService is invariant in A, suggests +A (covariant)
 }
 
 /**
@@ -176,7 +184,11 @@ object covariance {
    *
    * Take note of your findings.
    */
-  def acceptRipleyDogAnimal(delivery: PetDeliveryService[Ripley.type]): Unit = ???
+  def acceptRipleyDogAnimal(delivery: PetDeliveryService[Ripley.type]): Unit =
+    acceptRipley(delivery)
+  // acceptDog(delivery)
+  // acceptAnimal(delivery)
+  // the last two don't compile because PetDeliveryService is invariant in A, suggests +A (covariant)
 
   /**
    * EXERCISE 3
@@ -192,7 +204,7 @@ object covariance {
   sealed trait List[+A] {
     def concat[A1 >: A](that: List[A1]): List[A1] = ???
 
-    // def append(a: A): List[A]
+    def append[A1 >: A](a: A1): List[A]
   }
 }
 
@@ -215,7 +227,7 @@ object contravariance {
    * never occurs as output from any method on `PetHotel` (it occurs only as input to the `book`
    * method).
    */
-  trait PetHotel[A <: Animal] {
+  trait PetHotel[-A <: Animal] {
     def book(pet: A): Unit = println(s"Booked a room for ${pet}")
   }
 
@@ -231,7 +243,10 @@ object contravariance {
    *
    * Take note of your findings.
    */
-  def bookMidnightAndRipley(animalHotel: PetHotel[Animal]): Unit = ???
+  def bookMidnightAndRipley(animalHotel: PetHotel[Animal]): Unit = {
+    bookRipley(animalHotel)
+    bookMidnight(animalHotel)
+  }
 
   /**
    * EXERCISE 3
@@ -247,7 +262,7 @@ object contravariance {
   sealed trait Consumer[-A] {
     def merge[A1 <: A](that: Consumer[A1]): Consumer[A1] = ???
 
-    /// def fallback[A](that: Consumer[A]): Consumer[A]
+    def fallback[A1 <: A](that: Consumer[A1]): Consumer[A1] = ???
   }
 }
 
@@ -264,7 +279,7 @@ object variance_zeros {
    * The type `Nothing` can be used when a covariant type parameter is not being used. For example,
    * an empty list does not use any element type, because it has no elements.
    */
-  type Answer1
+  type Answer1           = Nothing
   type UnusedListElement = List[Answer1]
 
   /**
@@ -273,7 +288,7 @@ object variance_zeros {
    * The type `Any` can be used when a contravariant type parameter is not being used. For example,
    * a constant function does not use its input element.
    */
-  type Answer2
+  type Answer2                 = Any
   type UnusedFunctionInput[+B] = Answer2 => B
 }
 
@@ -285,8 +300,8 @@ object advanced_variance {
    * Given that a workflow is designed to consume some input, and either error or produce an
    * output value, choose the appropriate variance for the workflow type parameters.
    */
-  final case class Workflow[Input, Error, Output](run: Input => Either[Error, Output]) {
-    def map[NewOutput](f: Output => NewOutput): Workflow[Input, Error, NewOutput] = Workflow(i => run(i).map(f))
+  final case class Workflow[-Input, +Error, +Output](run: Input => Either[Error, Output]) {
+    def map[NewOutput](f: Output => NewOutput): Workflow[Input, Error, NewOutput] = Workflow(run(_).map(f))
 
     /**
      * EXERCISE 2
@@ -294,7 +309,10 @@ object advanced_variance {
      * Add the appropriate variance annotations to the following method, and see if you can
      * implement it by following its types.
      */
-    // def flatMap[NewOutput](f: Output => Workflow[Input, Error, NewOutput]): Workflow[Input, Error, NewOutput] = ???
+    def flatMap[NewInput <: Input, NewError >: Error, NewOutput](
+      f: Output => Workflow[NewInput, NewError, NewOutput]
+    ): Workflow[NewInput, NewError, NewOutput] =
+      Workflow(i => run(i).flatMap(f(_).run(i)))
 
     /**
      * EXERCISE 3
@@ -302,6 +320,14 @@ object advanced_variance {
      * Add the appropriate variance annotations to the following method, and see if you can
      * implement it by following its types.
      */
-    // def fallback(that: Workflow[Input, Error, Output]): Workflow[Input, Error, Output] = ???
+    def fallback[NewInput <: Input, NewError >: Error, NewOutput >: Output](
+      that: Workflow[NewInput, NewError, NewOutput]
+    ): Workflow[NewInput, NewError, NewOutput] =
+      Workflow(i =>
+        run(i) match {
+          case Left(_)      => that.run(i)
+          case Right(value) => Right(value)
+        }
+      )
   }
 }
