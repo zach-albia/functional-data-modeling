@@ -40,7 +40,13 @@ object eliminate_intersection {
      * user events OR device events (but NOT both), and which permits events that have timestamps
      * or lack timestamps; but which always have event ids.
      */
-    type Event = TODO
+    final case class Event(eventId: String, timestamp: Option[java.time.Instant], eventType: EventType)
+
+    sealed trait EventType
+    object EventType {
+      final case class UserEvent(userId: String)     extends EventType
+      final case class DeviceEvent(deviceId: String) extends EventType
+    }
   }
 }
 
@@ -65,11 +71,13 @@ object extract_product {
    * introduce a new field called `eventType`, which captures event-specific details for the
    * different event types.
    */
-  sealed trait AdvertisingEvent
-  object AdvertisingEvent {
-    final case class Impression(pageUrl: String, data: String)                 extends AdvertisingEvent
-    final case class Click(pageUrl: String, elementId: String, data: String)   extends AdvertisingEvent
-    final case class Action(pageUrl: String, actionName: String, data: String) extends AdvertisingEvent
+  final case class AdvertisingEvent(pageUrl: String, data: String, eventType: AdvertisingEventType)
+
+  sealed trait AdvertisingEventType
+  object AdvertisingEventType {
+    case object Impression                      extends AdvertisingEventType
+    final case class Click(elementId: String)   extends AdvertisingEventType
+    final case class Action(actionName: String) extends AdvertisingEventType
   }
 
   /**
@@ -80,12 +88,13 @@ object extract_product {
    * case class, and introduce a new field called `cardType`, which captures card-specific details
    * for the different event types.
    */
-  sealed trait Card
-  object Card {
-    final case class Clubs(points: Int)    extends Card
-    final case class Diamonds(points: Int) extends Card
-    final case class Spades(points: Int)   extends Card
-    final case class Hearts(points: Int)   extends Card
+  final case class Card(points: Int, cardType: Card)
+  sealed trait CardType
+  object CardType {
+    case object Clubs    extends CardType
+    case object Diamonds extends CardType
+    case object Spades   extends CardType
+    case object Hearts   extends CardType
   }
 
   /**
@@ -93,11 +102,12 @@ object extract_product {
    *
    * Apply the _extract product_ refactoring to `Event`.
    */
-  sealed trait Event
-  object Event {
-    final case class UserPurchase(userId: String, amount: Double, timestamp: java.time.Instant)        extends Event
-    final case class UserReturn(userId: String, itemId: String, timestamp: java.time.Instant)          extends Event
-    final case class SystemRefund(orderId: String, refundAmount: Double, timestamp: java.time.Instant) extends Event
+  case class Event(timestamp: java.time.Instant, eventType: EventType)
+  sealed trait EventType
+  object EventType {
+    final case class UserPurchase(userId: String, amount: Double)        extends EventType
+    final case class UserReturn(userId: String, itemId: String)          extends EventType
+    final case class SystemRefund(orderId: String, refundAmount: Double) extends EventType
   }
 }
 
@@ -119,38 +129,42 @@ object extract_sum {
    *
    * Extract out a missing enumeration from the following data type.
    */
-  final case class Person(
-    name: String,
-    job: Option[Job],                                // employed
-    employmentDate: Option[java.time.LocalDateTime], // if employed
-    school: Option[Enrollment]                       // full-time student
-  )
+  final case class Person(name: String, personType: PersonType)
+  sealed trait PersonType
+  object PersonType {
+    final case class Employee(job: Job, employmentDate: java.time.LocalDateTime) extends PersonType
+    final case class Student(enrollment: Enrollment)                             extends PersonType
+  }
 
   /**
    * EXERCISE 2
    *
    * Extract out a missing enumeration from the following data type.
    */
-  final case class Event(
-    deviceId: Option[String], // sensor initiated event
-    userId: Option[String],   // user initiated event
-    timestamp: java.time.Instant,
-    reading: Option[Double], // for sensors
-    click: Option[String],   // for user click events
-    purchase: Option[String] // for user order events
-  )
+  final case class Event(timestamp: java.time.Instant, eventType: EventType)
+
+  sealed trait UserEventType
+  object UserEventType {
+    final case class ClickEvent(click: String)       extends UserEventType
+    final case class PurchaseEvent(purchase: String) extends UserEventType
+  }
+
+  sealed trait EventType
+  object EventType {
+    final case class UserEvent(userId: String, eventType: UserEventType) extends EventType
+    final case class DeviceEvent(deviceId: String, reading: Double)      extends EventType
+  }
 
   /**
    * EXERCISE 3
    *
    * Extract out a missing enumeration from the following data type.
    */
-  final case class CreditCard(
-    digit16: Option[Digit16],      // For VISA
-    digit15: Option[Digit15],      // For AMEX
-    securityCode3: Option[Digit3], // For AMEX
-    securityCode4: Option[Digit4]  // For VISA
-  )
+  sealed trait CreditCard
+  object CreditCard {
+    final case class Visa(digit16: Digit16, securityCode4: Digit4) extends CreditCard
+    final case class Amex(digit15: Digit15, securityCode3: Digit3) extends CreditCard
+  }
 
   final case class Digit16(group1: Digit4, group2: Digit4, group3: Digit4, group4: Digit4)
 
@@ -192,8 +206,9 @@ object eliminate_wildcard {
    */
   def pageDeveloper(event: Event, onCall: Phone): Unit =
     event match {
-      case Event.ServerDown => sendText(onCall, "The server is down, please look into it right away!")
-      case _                =>
+      case Event.ServerDown       => sendText(onCall, "The server is down, please look into it right away!")
+      case Event.ServiceRestarted => sendText(onCall, "The server just restarted.")
+      case Event.BillingOverage   => sendText(onCall, "The server just went over the billing overage.")
     }
 
   /**
@@ -206,6 +221,7 @@ object eliminate_wildcard {
   object Event {
     case object ServerDown       extends Event
     case object ServiceRestarted extends Event
+    case object BillingOverage   extends Event
   }
 }
 
@@ -219,11 +235,8 @@ object eliminate_wildcard {
  */
 object eliminate_typecase {
   sealed trait Event
-  sealed trait IdentifiedEvent extends Event {
-    def id: String
-  }
   final case class Click(href: String)                extends Event
-  final case class Purchase(id: String, item: String) extends IdentifiedEvent
+  final case class Purchase(id: String, item: String) extends Event
 
   /**
    * EXERCISE 1
@@ -232,8 +245,8 @@ object eliminate_typecase {
    */
   def logIdentifiedEvents(event: Event): Unit =
     event match {
-      case identified: IdentifiedEvent => println("User event: " + identified.id)
-      case _                           =>
+      case Click(href)        => println("Click event: " + href)
+      case Purchase(id, item) => println(s"Purchase event: id: $id, item: $item")
     }
 
 }
@@ -257,7 +270,7 @@ object nested_shadowing {
   def count[A](list: List[A]): Int =
     list match {
       case Nil       => 0
-      case _ :: tail => 1 + count(list)
+      case _ :: list => 1 + count(list)
     }
 
   sealed trait UserBehavior
@@ -284,7 +297,7 @@ object nested_shadowing {
       case Anything => false
       case Sequence(first, second) =>
         analyzePattern(first) || analyzePattern(second)
-      case Not(value) =>
+      case Not(b) =>
         analyzePattern(b)
     }
 }
@@ -306,7 +319,6 @@ object delete_empty {
    */
   sealed trait Currency
   object Currency {
-    case object None                               extends Currency
     final case class USD(dollars: Int, cents: Int) extends Currency
     final case class EUR(euros: Int, cents: Int)   extends Currency
   }
@@ -318,7 +330,6 @@ object delete_empty {
    */
   sealed trait DataSource
   object DataSource {
-    case object NoSource                                                extends DataSource
     final case class S3(bucket: String)                                 extends DataSource
     final case class JDBC(url: String, properties: Map[String, String]) extends DataSource
   }
