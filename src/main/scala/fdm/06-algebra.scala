@@ -169,10 +169,14 @@ object algebra_of_types {
    * `1 + A + A * A + A * A * A + ...`, or, by using exponentiation, `1 + A + A^2 + A^3 + ...`.
    *
    * Find the algebraic definition for the following type `Tree`.
+   *
+   * <pre>
+   * `Tree a = Leaf a + Tree a * Tree a`
+   * `f(a) = a + f(a)^2`
+   * `f(a) = a - a^2 + a^3 - a^4 + ...`
+   * </pre>
    */
   sealed trait Tree[+A]
-  // `f(A) = A + f(A)^2 ; f(A) -> algebraic definition`
-  // or `A + (A + ...) * (A + ...)
   object Tree {
     final case class Leaf[+A](value: A)                      extends Tree[A]
     final case class Fork[+A](left: Tree[A], right: Tree[A]) extends Tree[A]
